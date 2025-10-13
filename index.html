@@ -9,32 +9,63 @@
       background-color: #121212;
       color: #00FF99;
       font-family: 'Courier New', monospace;
-      font-size: 3em;
+      font-size: 2em;
       text-align: center;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
     }
+
+    #controls {
+      margin-bottom: 30px;
+    }
+
+    input[type="number"] {
+      font-size: 1em;
+      padding: 5px 10px;
+      width: 120px;
+      text-align: center;
+      background-color: #1e1e1e;
+      color: #00FF99;
+      border: 2px solid #00FF99;
+      border-radius: 5px;
+    }
+
+    label {
+      margin-right: 10px;
+    }
   </style>
 </head>
 <body>
-  <div>RTE:<span id="money">0.00</span></div>
+  <div id="controls">
+    <label for="hourly">hw: </label>
+    <input type="number" id="hourly" value="24.68" min="0" step="0.01">
+  </div>
+
+  <div>RTE: <span id="money">0.00</span></div>
 
   <script>
-    const hourlyRate = 25;
-    const overtimeRate = hourlyRate * 1.5;
-
     function getTime(hour, minute = 0) {
       const now = new Date();
       return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0);
+    }
+
+    function getHourlyRate() {
+      const input = document.getElementById("hourly");
+      const rate = parseFloat(input.value);
+      return isNaN(rate) ? 0 : rate;
     }
 
     function updateEarnings() {
       const now = new Date();
       const day = now.getDay(); // 0:일 ~ 6:토
       const isWeekend = (day === 0 || day === 6);
+
+      const hourlyRate = getHourlyRate();
+      const overtimeRate = hourlyRate * 1.5;
 
       const workStart = getTime(8, 0);
       const lunchStart = getTime(11, 30);
@@ -48,7 +79,7 @@
       } else {
         let workTimeMs = now - workStart;
 
-        // 점심시간 제외 (주말도 동일하게 적용)
+        // 점심시간 제외
         if (now > lunchStart) {
           const lunchOverlapStart = Math.max(workStart.getTime(), lunchStart.getTime());
           const lunchOverlapEnd = Math.min(now.getTime(), lunchEnd.getTime());
@@ -61,11 +92,9 @@
         let workHours = workTimeMs / (1000 * 60 * 60);
 
         if (isWeekend) {
-          // 주말은 전부 1.5배
           earned = workHours * overtimeRate;
         } else {
-          // 평일
-          const regularHoursLimit = (regularEnd - workStart - 60 * 60 * 1000) / (1000 * 60 * 60); // 8시간 (점심제외)
+          const regularHoursLimit = (regularEnd - workStart - 60 * 60 * 1000) / (1000 * 60 * 60); // 8시간
           const overtimeHours = Math.max(0, workHours - regularHoursLimit);
           const regularHours = workHours - overtimeHours;
 
