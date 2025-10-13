@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 모바일 대응 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RTE</title>
   <style>
     body {
@@ -23,35 +23,65 @@
   <div>RTE:<span id="money">0.00</span></div>
 
   <script>
-    const hourlyRate = 25; // 시급 설정
+    const hourlyRate = 25;
+    const overtimeRate = hourlyRate * 1.5;
 
-    function getStartTime() {
+    function getTime(hour, minute = 0) {
       const now = new Date();
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0);
     }
 
     function updateEarnings() {
       const now = new Date();
-      const startTime = getStartTime();
-      let elapsedMs = now - startTime;
+      const day = now.getDay(); // 0:일 ~ 6:토
+      const isWeekend = (day === 0 || day === 6);
 
-      if (elapsedMs < 0) elapsedMs = 0;
+      const workStart = getTime(8, 0);
+      const lunchStart = getTime(11, 30);
+      const lunchEnd = getTime(12, 30);
+      const regularEnd = getTime(17, 0);
 
-      const elapsedHours = elapsedMs / (1000 * 60 * 60);
-      const earned = hourlyRate * elapsedHours;
+      let earned = 0;
+
+      if (now < workStart) {
+        earned = 0;
+      } else {
+        let workTimeMs = now - workStart;
+
+        // 점심시간 제외 (주말도 동일하게 적용)
+        if (now > lunchStart) {
+          const lunchOverlapStart = Math.max(workStart.getTime(), lunchStart.getTime());
+          const lunchOverlapEnd = Math.min(now.getTime(), lunchEnd.getTime());
+
+          if (lunchOverlapEnd > lunchOverlapStart) {
+            workTimeMs -= (lunchOverlapEnd - lunchOverlapStart);
+          }
+        }
+
+        let workHours = workTimeMs / (1000 * 60 * 60);
+
+        if (isWeekend) {
+          // 주말은 전부 1.5배
+          earned = workHours * overtimeRate;
+        } else {
+          // 평일
+          const regularHoursLimit = (regularEnd - workStart - 60 * 60 * 1000) / (1000 * 60 * 60); // 8시간 (점심제외)
+          const overtimeHours = Math.max(0, workHours - regularHoursLimit);
+          const regularHours = workHours - overtimeHours;
+
+          earned = (regularHours * hourlyRate) + (overtimeHours * overtimeRate);
+        }
+      }
 
       document.getElementById("money").textContent = earned.toFixed(2);
     }
 
-    // iOS Safari에서 requestAnimationFrame이 더 안정적인 경우도 있음
     function loop() {
       updateEarnings();
       requestAnimationFrame(loop);
     }
 
-    loop(); // 시작
+    loop();
   </script>
 </body>
-
 </html>
-
