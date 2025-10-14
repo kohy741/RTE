@@ -89,7 +89,7 @@
       const workStart = getTime(8, 0);
       const lunchStart = getTime(11, 30);
       const lunchEnd = getTime(12, 30);
-      const regularEnd = getTime(11, 0);
+      const regularEnd = getTime(17, 0);
 
       let earned = 0;
 
@@ -129,7 +129,7 @@
 
     function lunchBlink() {
       const now = new Date();
-      const lunchStart = getTime(11, 0);
+      const lunchStart = getTime(11, 30);
       const lunchEnd = getTime(12, 30);
       const indicator = document.getElementById("lunch-indicator");
 
@@ -142,7 +142,7 @@
 
     function otBlink() {
       const now = new Date();
-      const workEnd = getTime(11, 0);
+      const workEnd = getTime(17, 0);
       const indicator = document.getElementById("ot-indicator");
 
       if (now >= workEnd) {
