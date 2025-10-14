@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RTE</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RTE with Lunch & OT Blink</title>
   <style>
     body {
       background-color: #121212;
@@ -37,15 +37,34 @@
     label {
       margin-right: 10px;
     }
+
+    #lunch-indicator,
+    #ot-indicator {
+      margin-bottom: 20px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    #lunch-indicator {
+      color: #FF6600; /* 주황색 */
+    }
+
+    #ot-indicator {
+      color: #efb23f; /* 밝은 주황색 */
+    }
   </style>
 </head>
 <body>
+  <div id="ot-indicator">OT</div>  
   <div id="controls">
     <label for="hourly">hw: </label>
-    <input type="number" id="hourly" value="1000" min="0" step="0.01">
+    <input type="number" id="hourly" value="1000" min="0" step="0.01" />
   </div>
 
   <div>RTE: <span id="money">0.00</span></div>
+  <div id="lunch-indicator">Lunch</div>
+
 
   <script>
     function getTime(hour, minute = 0) {
@@ -70,7 +89,7 @@
       const workStart = getTime(8, 0);
       const lunchStart = getTime(11, 30);
       const lunchEnd = getTime(12, 30);
-      const regularEnd = getTime(17, 0);
+      const regularEnd = getTime(11, 0);
 
       let earned = 0;
 
@@ -105,32 +124,64 @@
       document.getElementById("money").textContent = earned.toFixed(2);
     }
 
-    function loop() {
-      updateEarnings();
-      requestAnimationFrame(loop);
+    let lunchBlinkVisible = true;
+    let otBlinkVisible = true;
+
+    function lunchBlink() {
+      const now = new Date();
+      const lunchStart = getTime(11, 0);
+      const lunchEnd = getTime(12, 30);
+      const indicator = document.getElementById("lunch-indicator");
+
+      if (now >= lunchStart && now <= lunchEnd) {
+        indicator.style.opacity = lunchBlinkVisible ? "1" : "0";
+      } else {
+        indicator.style.opacity = "0";
+      }
     }
 
-    // ✅ 시급 저장 및 불러오기 기능
+    function otBlink() {
+      const now = new Date();
+      const workEnd = getTime(11, 0);
+      const indicator = document.getElementById("ot-indicator");
+
+      if (now >= workEnd) {
+        indicator.style.opacity = otBlinkVisible ? "1" : "0";
+      } else {
+        indicator.style.opacity = "0";
+      }
+    }
+
+    // 실시간 RTE 금액 업데이트
+    function updateLoop() {
+      updateEarnings();
+      requestAnimationFrame(updateLoop);
+    }
+
+    // 깜빡이는 표시 업데이트 (0.5초 간격)
+    setInterval(() => {
+      lunchBlinkVisible = !lunchBlinkVisible;
+      otBlinkVisible = !otBlinkVisible;
+      lunchBlink();
+      otBlink();
+    }, 500);
+
     window.addEventListener("DOMContentLoaded", () => {
       const input = document.getElementById("hourly");
 
-      // 저장된 값 불러오기
       const savedRate = localStorage.getItem("hourlyRate");
       if (savedRate !== null) {
         input.value = savedRate;
       }
 
-      // 저장 함수
       function saveRate() {
         localStorage.setItem("hourlyRate", input.value);
       }
 
-      // 이벤트 추가
       input.addEventListener("input", saveRate);
       input.addEventListener("change", saveRate);
 
-      // 루프 시작
-      loop();
+      updateLoop(); // 시작!
     });
   </script>
 </body>
