@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RTE</title>
+  <title>RTE with Lunch & OT Blink</title>
   <style>
     body {
       background-color: #121212;
@@ -59,7 +59,7 @@
   <div id="ot-indicator">OT</div>  
   <div id="controls">
     <label for="hourly">hw: </label>
-    <input type="number" id="hourly" value="24.68" min="0" step="0.01" />
+    <input type="number" id="hourly" value="1000" min="0" step="0.01" />
   </div>
 
   <div>RTE: <span id="money">0.00</span></div>
@@ -142,10 +142,14 @@
 
     function otBlink() {
       const now = new Date();
-      const workEnd = getTime(17, 0);
       const indicator = document.getElementById("ot-indicator");
 
-      if (now >= workEnd) {
+      const day = now.getDay(); // 0 = 일, 6 = 토
+      const isWeekend = (day === 0 || day === 6);
+
+      const otStart = isWeekend ? getTime(8, 0) : getTime(17, 0); // 주말은 8시, 평일은 17시
+
+      if (now >= otStart) {
         indicator.style.opacity = otBlinkVisible ? "1" : "0";
       } else {
         indicator.style.opacity = "0";
@@ -186,5 +190,3 @@
   </script>
 </body>
 </html>
-
-
