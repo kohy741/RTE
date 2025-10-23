@@ -147,7 +147,7 @@
       const day = now.getDay(); // 0 = 일, 6 = 토
       const isWeekend = (day === 0 || day === 6);
 
-      const otStart = isWeekend ? getTime(7, 0) : getTime(6, 0); // 주말은 8시, 평일은 17시
+      const otStart = isWeekend ? getTime(7, 0) : getTime(16, 0); // 주말은 8시, 평일은 17시
 
       if (now >= otStart) {
         indicator.style.opacity = otBlinkVisible ? "1" : "0";
@@ -190,3 +190,4 @@
   </script>
 </body>
 </html>
+
