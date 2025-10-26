@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RTE</title>
+  <title>RTE (N)</title>
   <style>
     body {
       background-color: #121212;
@@ -63,8 +63,7 @@
   </div>
 
   <div>RTE: <span id="money">0.00</span></div>
-  <div id="lunch-indicator">Lunch</div>
-
+  <div id="lunch-indicator">Meal</div>
 
   <script>
     function getTime(hour, minute = 0) {
@@ -80,31 +79,41 @@
 
     function updateEarnings() {
       const now = new Date();
-      const day = now.getDay(); // 0:일 ~ 6:토
+      const day = now.getDay();
       const isWeekend = (day === 0 || day === 6);
 
       const hourlyRate = getHourlyRate();
       const overtimeRate = hourlyRate * 1.5;
 
-      const workStart = getTime(7, 0);
-      const lunchStart = getTime(11, 30);
-      const lunchEnd = getTime(12, 30);
-      const regularEnd = getTime(16, 0);
+      // 🔹 야간 근무 시간 설정
+      const workStart = getTime(19, 0); // 19:00 시작
+      const mealStart = getTime(23, 30); // 23:30 ~ 00:30 식사
+      const mealEnd = new Date(mealStart);
+      mealEnd.setDate(mealEnd.getDate() + 1);
+      mealEnd.setHours(0, 30, 0, 0);
+
+      const regularEnd = new Date(workStart);
+      regularEnd.setDate(regularEnd.getDate() + 1);
+      regularEnd.setHours(4, 0, 0, 0); // 04:00 퇴근
+
+      let adjustedNow = new Date(now);
+      if (now.getHours() < 12) {
+        adjustedNow.setDate(adjustedNow.getDate() + 1);
+      }
 
       let earned = 0;
 
-      if (now < workStart) {
+      if (adjustedNow < workStart) {
         earned = 0;
       } else {
-        let workTimeMs = now - workStart;
+        let workTimeMs = adjustedNow - workStart;
 
-        // 점심시간 제외
-        if (now > lunchStart) {
-          const lunchOverlapStart = Math.max(workStart.getTime(), lunchStart.getTime());
-          const lunchOverlapEnd = Math.min(now.getTime(), lunchEnd.getTime());
-
-          if (lunchOverlapEnd > lunchOverlapStart) {
-            workTimeMs -= (lunchOverlapEnd - lunchOverlapStart);
+        // 식사시간 제외
+        if (adjustedNow > mealStart) {
+          const overlapStart = Math.max(workStart.getTime(), mealStart.getTime());
+          const overlapEnd = Math.min(adjustedNow.getTime(), mealEnd.getTime());
+          if (overlapEnd > overlapStart) {
+            workTimeMs -= (overlapEnd - overlapStart);
           }
         }
 
@@ -113,10 +122,9 @@
         if (isWeekend) {
           earned = workHours * overtimeRate;
         } else {
-          const regularHoursLimit = (regularEnd - workStart - 60 * 60 * 1000) / (1000 * 60 * 60); // 8시간
+          const regularHoursLimit = 8; // 8시간 정규 근무
           const overtimeHours = Math.max(0, workHours - regularHoursLimit);
           const regularHours = workHours - overtimeHours;
-
           earned = (regularHours * hourlyRate) + (overtimeHours * overtimeRate);
         }
       }
@@ -124,32 +132,45 @@
       document.getElementById("money").textContent = earned.toFixed(2);
     }
 
-    let lunchBlinkVisible = true;
+    // 🔹 야식시간 깜빡임
+    let mealBlinkVisible = true;
     let otBlinkVisible = true;
 
-    function lunchBlink() {
+    function mealBlink() {
       const now = new Date();
-      const lunchStart = getTime(11, 30);
-      const lunchEnd = getTime(12, 30);
+      const mealStart = getTime(23, 30);
+      const mealEnd = new Date(mealStart);
+      mealEnd.setDate(mealEnd.getDate() + 1);
+      mealEnd.setHours(0, 30, 0, 0);
       const indicator = document.getElementById("lunch-indicator");
 
-      if (now >= lunchStart && now <= lunchEnd) {
-        indicator.style.opacity = lunchBlinkVisible ? "1" : "0";
+      let adjustedNow = new Date(now);
+      if (now.getHours() < 12) adjustedNow.setDate(adjustedNow.getDate() + 1);
+
+      if (adjustedNow >= mealStart && adjustedNow <= mealEnd) {
+        indicator.style.opacity = mealBlinkVisible ? "1" : "0";
       } else {
         indicator.style.opacity = "0";
       }
     }
 
+    // 🔹 OT 깜빡임 (04:00 이후)
     function otBlink() {
       const now = new Date();
       const indicator = document.getElementById("ot-indicator");
-
-      const day = now.getDay(); // 0 = 일, 6 = 토
+      const day = now.getDay();
       const isWeekend = (day === 0 || day === 6);
 
-      const otStart = isWeekend ? getTime(7, 0) : getTime(16, 0); // 주말은 8시, 평일은 17시
+      const otStart = isWeekend ? getTime(19, 0) : (() => {
+        const t = getTime(4, 0);
+        t.setDate(t.getDate() + 1);
+        return t;
+      })();
 
-      if (now >= otStart) {
+      let adjustedNow = new Date(now);
+      if (now.getHours() < 12) adjustedNow.setDate(adjustedNow.getDate() + 1);
+
+      if (adjustedNow >= otStart) {
         indicator.style.opacity = otBlinkVisible ? "1" : "0";
       } else {
         indicator.style.opacity = "0";
@@ -162,11 +183,11 @@
       requestAnimationFrame(updateLoop);
     }
 
-    // 깜빡이는 표시 업데이트 (0.5초 간격)
+    // 깜빡이는 표시 (0.5초 간격)
     setInterval(() => {
-      lunchBlinkVisible = !lunchBlinkVisible;
+      mealBlinkVisible = !mealBlinkVisible;
       otBlinkVisible = !otBlinkVisible;
-      lunchBlink();
+      mealBlink();
       otBlink();
     }, 500);
 
@@ -185,9 +206,8 @@
       input.addEventListener("input", saveRate);
       input.addEventListener("change", saveRate);
 
-      updateLoop(); // 시작!
+      updateLoop();
     });
   </script>
 </body>
 </html>
-
